@@ -29,6 +29,7 @@ from .processors import (
     PromptProcessor,
     LLMProcessor,
     NoOpProcessor,
+    DataTransformProcessor,
 )
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     
     # Specialized processors
     "PromptProcessor",
-    "LLMProcessor",
+    "LLMProcessor", 
     "NoOpProcessor",
+    "DataTransformProcessor",
 ]

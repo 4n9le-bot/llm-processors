@@ -42,16 +42,6 @@ class TestPromptProcessor:
         processor = PromptProcessor(prompt="test")
         assert processor.validate_input(empty_context) is True
     
-    def test_prompt_processor_required_inputs(self):
-        """Test prompt processor required inputs."""
-        processor = PromptProcessor(prompt="test")
-        assert processor.get_required_inputs() == []
-    
-    def test_prompt_processor_output_keys(self):
-        """Test prompt processor output keys."""
-        processor = PromptProcessor(prompt="test")
-        assert processor.get_output_keys() == ["prompt"]
-
 
 class TestLLMProcessor:
     """Test cases for LLMProcessor."""
@@ -106,7 +96,7 @@ class TestLLMProcessor:
         result = await processor.process(empty_context)
         
         assert_result_failed(result, ValueError)
-        assert "No prompt found" in str(result.error)
+        assert "No data found for input key 'prompt'" in str(result.error)
     
     def test_llm_processor_validate_input_success(self, context_with_prompt):
         """Test LLM processor input validation with valid input."""
@@ -117,16 +107,6 @@ class TestLLMProcessor:
         """Test LLM processor input validation with missing prompt."""
         processor = LLMProcessor()
         assert processor.validate_input(empty_context) is False
-    
-    def test_llm_processor_required_inputs(self):
-        """Test LLM processor required inputs."""
-        processor = LLMProcessor()
-        assert processor.get_required_inputs() == ["prompt"]
-    
-    def test_llm_processor_output_keys(self):
-        """Test LLM processor output keys."""
-        processor = LLMProcessor()
-        assert processor.get_output_keys() == ["llm_response"]
     
     def test_llm_processor_mock_response_generation(self):
         """Test the mock response generation logic."""
@@ -188,12 +168,3 @@ class TestNoOpProcessor:
         assert processor.validate_input(empty_context) is True
         assert processor.validate_input(sample_context) is True
     
-    def test_noop_processor_required_inputs(self):
-        """Test NoOpProcessor required inputs."""
-        processor = NoOpProcessor()
-        assert processor.get_required_inputs() == []
-    
-    def test_noop_processor_output_keys(self):
-        """Test NoOpProcessor output keys."""
-        processor = NoOpProcessor()
-        assert processor.get_output_keys() == []

@@ -175,15 +175,15 @@ class TestSequentialPipeline:
         
         # Create processors with compatible inputs/outputs
         class ProducerProcessor(MockProcessor):
-            def get_output_keys(self):
-                return ["data"]
+            def __init__(self):
+                super().__init__()
+                self.output_key = "data"
         
         class ConsumerProcessor(MockProcessor):
-            def get_required_inputs(self):
-                return ["data"]
-            
-            def get_output_keys(self):
-                return ["result"]
+            def __init__(self):
+                super().__init__()
+                self.input_key = "data"
+                self.output_key = "result"
         
         pipeline.add_processors([ProducerProcessor(), ConsumerProcessor()])
         errors = pipeline.validate_pipeline()
@@ -194,8 +194,9 @@ class TestSequentialPipeline:
         pipeline = SequentialPipeline()
         
         class ConsumerProcessor(MockProcessor):
-            def get_required_inputs(self):
-                return ["missing_data"]
+            def __init__(self):
+                super().__init__()
+                self.input_key = "missing_data"
         
         pipeline.add_processor(ConsumerProcessor())
         errors = pipeline.validate_pipeline()
@@ -295,12 +296,14 @@ class TestParallelPipeline:
         pipeline = ParallelPipeline()
         
         class ConflictingProcessor1(MockProcessor):
-            def get_output_keys(self):
-                return ["same_key"]
+            def __init__(self):
+                super().__init__()
+                self.output_key = "same_key"
         
         class ConflictingProcessor2(MockProcessor):
-            def get_output_keys(self):
-                return ["same_key"]
+            def __init__(self):
+                super().__init__()
+                self.output_key = "same_key"
         
         pipeline.add_processors([ConflictingProcessor1(), ConflictingProcessor2()])
         errors = pipeline.validate_pipeline()

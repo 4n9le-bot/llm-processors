@@ -75,24 +75,6 @@ class Processor(ABC):
         """
         pass
     
-    def get_required_inputs(self) -> List[str]:
-        """
-        Get list of required input keys from context.
-        
-        Returns:
-            List[str]: List of required context keys
-        """
-        return []
-    
-    def get_output_keys(self) -> List[str]:
-        """
-        Get list of output keys this processor will add to context.
-        
-        Returns:
-            List[str]: List of output context keys
-        """
-        return []
-    
     def __repr__(self) -> str:
         """String representation of the processor."""
         return f"{self.__class__.__name__}(name='{self.name}')"

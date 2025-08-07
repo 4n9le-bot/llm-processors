@@ -222,18 +222,20 @@ class SequentialPipeline(Pipeline):
         available_keys = set()
         
         for i, processor in enumerate(self._processors):
-            required_inputs = processor.get_required_inputs()
+            # Get input key from processor attribute
+            input_key = getattr(processor, 'input_key', None)
             
-            # Check if required inputs are available
-            for required_key in required_inputs:
-                if required_key not in available_keys:
-                    errors.append(
-                        f"Processor {processor.name} at position {i} "
-                        f"requires input '{required_key}' which is not available"
-                    )
+            # Check if required input is available
+            if input_key and input_key not in available_keys:
+                errors.append(
+                    f"Processor {processor.name} at position {i} "
+                    f"requires input '{input_key}' which is not available"
+                )
             
-            # Add output keys to available keys
-            available_keys.update(processor.get_output_keys())
+            # Add output key to available keys
+            output_key = getattr(processor, 'output_key', None)
+            if output_key:
+                available_keys.add(output_key)
         
         return errors
     
@@ -380,12 +382,13 @@ class ParallelPipeline(Pipeline):
         # Check that no processor depends on output from another processor in the same pipeline
         all_outputs = set()
         for processor in self._processors:
-            processor_outputs = set(processor.get_output_keys())
-            if all_outputs.intersection(processor_outputs):
-                errors.append(
-                    f"Processor {processor.name} produces outputs that conflict with other processors"
-                )
-            all_outputs.update(processor_outputs)
+            output_key = getattr(processor, 'output_key', None)
+            if output_key:
+                if output_key in all_outputs:
+                    errors.append(
+                        f"Processor {processor.name} produces output '{output_key}' that conflicts with other processors"
+                    )
+                all_outputs.add(output_key)
         
         return errors
     

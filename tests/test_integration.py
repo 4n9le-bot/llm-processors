@@ -167,12 +167,6 @@ class TestPipelineIntegration:
             
             def validate_input(self, context):
                 return True
-            
-            def get_required_inputs(self):
-                return []
-            
-            def get_output_keys(self):
-                return ["processed_data", "step_counter"]
         
         prompt_processor = PromptProcessor(prompt="Test")
         data_processor = DataProcessor()

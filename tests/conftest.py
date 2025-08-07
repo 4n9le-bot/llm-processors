@@ -73,6 +73,10 @@ class MockProcessor(Processor):
         self.should_fail = should_fail
         self.process_called = False
         self.validate_called = False
+        # Set up keys for the base class default implementation
+        self.output_key = "mock_output"
+        if self.should_fail:
+            self.input_key = "mock_input"
     
     async def process(self, context: Context) -> ProcessingResult:
         self.process_called = True
@@ -92,12 +96,6 @@ class MockProcessor(Processor):
     def validate_input(self, context: Context) -> bool:
         self.validate_called = True
         return not self.should_fail
-    
-    def get_required_inputs(self) -> List[str]:
-        return ["mock_input"] if self.should_fail else []
-    
-    def get_output_keys(self) -> List[str]:
-        return ["mock_output"]
 
 
 @pytest.fixture

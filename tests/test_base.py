@@ -90,19 +90,6 @@ class TestProcessor:
         processor_fail = MockProcessor(should_fail=True)
         assert processor_fail.validate_input(empty_context) is False
     
-    def test_processor_required_inputs(self):
-        """Test getting required inputs."""
-        processor = MockProcessor()
-        assert processor.get_required_inputs() == []
-        
-        processor_fail = MockProcessor(should_fail=True)
-        assert processor_fail.get_required_inputs() == ["mock_input"]
-    
-    def test_processor_output_keys(self):
-        """Test getting output keys."""
-        processor = MockProcessor()
-        assert processor.get_output_keys() == ["mock_output"]
-    
     def test_processor_string_representation(self):
         """Test processor string representation."""
         processor = MockProcessor("TestName")
