@@ -36,7 +36,6 @@ class SequentialPipeline(Pipeline):
         self.name = name or f"SequentialPipeline_{id(self)}"
         self.default_timeout = default_timeout
         self._processors: List[Processor] = processors or []
-        self._error_handlers: Dict[str, Callable] = {}
         self._processor_timeouts: Dict[str, float] = {}
     
     def add_processor(self, processor: Processor) -> 'SequentialPipeline':
@@ -84,25 +83,7 @@ class SequentialPipeline(Pipeline):
     def get_processors(self) -> List[Processor]:
         """Get list of all processors in the pipeline."""
         return self._processors.copy()
-    
-    def add_error_handler(
-        self, 
-        processor_name: str, 
-        handler: Callable
-    ) -> 'SequentialPipeline':
-        """
-        Add error handler for a specific processor.
-        
-        Args:
-            processor_name: Name of the processor
-            handler: Error handler function
-            
-        Returns:
-            SequentialPipeline: Self for method chaining
-        """
-        self._error_handlers[processor_name] = handler
-        return self
-    
+
     def set_processor_timeout(self, processor_name: str, timeout: float) -> 'SequentialPipeline':
         """
         Set timeout for a specific processor.
