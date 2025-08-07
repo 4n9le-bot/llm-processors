@@ -1,6 +1,7 @@
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --strict-markers"
+asyncio_mode = "auto"
 testpaths = [
     "tests",
 ]
@@ -16,6 +17,7 @@ python_functions = [
 ]
 markers = [
     "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
+    "integration: marks tests as integration tests", 
     "slow: marks tests as slow running",
+    "asyncio: marks tests as async tests",
 ]

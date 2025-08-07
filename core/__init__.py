@@ -9,12 +9,13 @@ from .base import (
     # Core abstractions
     Processor,
     Pipeline, 
-    Context,
     
     # Data structures
     ProcessingResult,
     ProcessingStatus,
 )
+
+from .context import Context
 
 from .pipeline import (
     # Pipeline implementations

@@ -6,9 +6,9 @@ import pytest
 from unittest.mock import AsyncMock
 
 from core.pipeline import SequentialPipeline, ParallelPipeline, Pipeline
-from core.base import Context, ProcessingStatus, ProcessingResult
-from tests.conftest import assert_result_success, assert_result_failed
-from tests.test_base import MockProcessor
+from core.base import ProcessingStatus, ProcessingResult
+from core.context import Context
+from tests.conftest import assert_result_success, assert_result_failed, MockProcessor
 
 
 class TestSequentialPipeline:
@@ -181,7 +181,18 @@ class TestSequentialPipeline:
             context.set("error_handled", True)
             context.set("error_message", str(error))
         
-        processor = MockProcessor(should_fail=True)
+        # Create a processor that passes validation but fails during processing
+        class ProcessingFailureProcessor(MockProcessor):
+            def validate_input(self, context):
+                return True  # Pass validation
+            
+            async def process(self, context):
+                return ProcessingResult(
+                    status=ProcessingStatus.FAILED,
+                    error=RuntimeError("Processing failed")
+                )
+        
+        processor = ProcessingFailureProcessor("FailingProcessor")
         pipeline.add_processor(processor)
         pipeline.add_error_handler(processor.name, error_handler)
         

@@ -7,7 +7,8 @@ This module provides concrete implementations of processors for common patterns.
 from typing import List, Optional, Dict, Any
 import asyncio
 
-from .base import Processor, Context, ProcessingResult, ProcessingStatus
+from .base import Processor, ProcessingResult, ProcessingStatus
+from .context import Context
 
 
 class PromptProcessor(Processor):

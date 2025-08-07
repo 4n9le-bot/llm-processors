@@ -7,7 +7,8 @@ This module provides concrete implementations of pipelines for different executi
 from typing import Dict, List, Optional, Callable, Any
 import asyncio
 
-from .base import Pipeline, Processor, Context, ProcessingResult, ProcessingStatus
+from .base import Pipeline, Processor, ProcessingResult, ProcessingStatus
+from .context import Context
 
 
 class SequentialPipeline(Pipeline):

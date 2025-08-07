@@ -3,9 +3,10 @@ Shared test fixtures and utilities.
 """
 
 import pytest
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional, Type, List
 
 from core import Context, ProcessingResult, ProcessingStatus
+from core.base import Processor
 
 
 @pytest.fixture
@@ -61,3 +62,51 @@ def assert_result_failed(result: ProcessingResult, expected_error_type: Optional
     assert result.error is not None
     if expected_error_type:
         assert isinstance(result.error, expected_error_type)
+
+
+# Mock processor for testing purposes
+class MockProcessor(Processor):
+    """Mock processor for testing purposes."""
+    
+    def __init__(self, name: str = "MockProcessor", should_fail: bool = False):
+        super().__init__(name)
+        self.should_fail = should_fail
+        self.process_called = False
+        self.validate_called = False
+    
+    async def process(self, context: Context) -> ProcessingResult:
+        self.process_called = True
+        
+        if self.should_fail:
+            return ProcessingResult(
+                status=ProcessingStatus.FAILED,
+                error=RuntimeError("Mock processor failed")
+            )
+        
+        context.set("mock_output", "processed")
+        return ProcessingResult(
+            status=ProcessingStatus.COMPLETED,
+            data="mock_result"
+        )
+    
+    def validate_input(self, context: Context) -> bool:
+        self.validate_called = True
+        return not self.should_fail
+    
+    def get_required_inputs(self) -> List[str]:
+        return ["mock_input"] if self.should_fail else []
+    
+    def get_output_keys(self) -> List[str]:
+        return ["mock_output"]
+
+
+@pytest.fixture
+def mock_processor():
+    """Create a mock processor for testing."""
+    return MockProcessor()
+
+
+@pytest.fixture
+def failing_mock_processor():
+    """Create a failing mock processor for testing."""
+    return MockProcessor(should_fail=True)
