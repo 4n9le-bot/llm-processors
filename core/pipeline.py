@@ -4,7 +4,7 @@ Pipeline implementations for the llm-processors framework.
 This module provides concrete implementations of pipelines for different execution patterns.
 """
 
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Any, Sequence
 import asyncio
 
 from .base import Pipeline, Processor, ProcessingResult, ProcessingStatus
@@ -23,7 +23,7 @@ class SequentialPipeline(Pipeline):
         self, 
         name: Optional[str] = None, 
         default_timeout: Optional[float] = None,
-        processors: Optional[List[Processor]] = None
+        processors: Optional[Sequence[Processor]] = None
     ):
         """
         Initialize pipeline.
@@ -31,11 +31,11 @@ class SequentialPipeline(Pipeline):
         Args:
             name: Optional name for the pipeline
             default_timeout: Default timeout for processors in seconds
-            processors: Optional list of processors to add initially
+            processors: Optional sequence of processors to add initially
         """
         self.name = name or f"SequentialPipeline_{id(self)}"
         self.default_timeout = default_timeout
-        self._processors: List[Processor] = processors or []
+        self._processors: List[Processor] = list(processors) if processors else []
         self._processor_timeouts: Dict[str, float] = {}
     
     def add_processor(self, processor: Processor) -> 'SequentialPipeline':
@@ -51,12 +51,12 @@ class SequentialPipeline(Pipeline):
         self._processors.append(processor)
         return self
     
-    def add_processors(self, processors: List[Processor]) -> 'SequentialPipeline':
+    def add_processors(self, processors: Sequence[Processor]) -> 'SequentialPipeline':
         """
         Add multiple processors to the pipeline.
         
         Args:
-            processors: List of processors to add
+            processors: Sequence of processors to add
             
         Returns:
             SequentialPipeline: Self for method chaining
@@ -165,13 +165,9 @@ class SequentialPipeline(Pipeline):
                 result = await self._execute_processor_with_timeout(processor, context)
                 results.append(result)
                 
-                # Handle errors
-                if result.status == ProcessingStatus.FAILED:
-                    if processor.name in self._error_handlers:
-                        self._error_handlers[processor.name](result.error, context)
-                    
-                    if stop_on_error:
-                        break
+                # Stop on error if requested
+                if result.status == ProcessingStatus.FAILED and stop_on_error:
+                    break
                         
             except Exception as e:
                 result = ProcessingResult(
@@ -179,10 +175,6 @@ class SequentialPipeline(Pipeline):
                     error=e
                 )
                 results.append(result)
-                
-                # Handle unexpected errors
-                if processor.name in self._error_handlers:
-                    self._error_handlers[processor.name](e, context)
                 
                 if stop_on_error:
                     break
@@ -268,7 +260,6 @@ class ParallelPipeline(Pipeline):
         self.name = name or f"ParallelPipeline_{id(self)}"
         self.default_timeout = default_timeout
         self._processors: List[Processor] = []
-        self._error_handlers: Dict[str, Callable] = {}
         self._processor_timeouts: Dict[str, float] = {}
     
     def add_processor(self, processor: Processor) -> 'ParallelPipeline':
@@ -276,7 +267,7 @@ class ParallelPipeline(Pipeline):
         self._processors.append(processor)
         return self
     
-    def add_processors(self, processors: List[Processor]) -> 'ParallelPipeline':
+    def add_processors(self, processors: Sequence[Processor]) -> 'ParallelPipeline':
         """Add multiple processors to the pipeline."""
         self._processors.extend(processors)
         return self
@@ -292,12 +283,7 @@ class ParallelPipeline(Pipeline):
     def get_processors(self) -> List[Processor]:
         """Get list of all processors in the pipeline."""
         return self._processors.copy()
-    
-    def add_error_handler(self, processor_name: str, handler: Callable) -> 'ParallelPipeline':
-        """Add error handler for a specific processor."""
-        self._error_handlers[processor_name] = handler
-        return self
-    
+
     def set_processor_timeout(self, processor_name: str, timeout: float) -> 'ParallelPipeline':
         """Set timeout for a specific processor."""
         self._processor_timeouts[processor_name] = timeout
@@ -368,12 +354,6 @@ class ParallelPipeline(Pipeline):
                 
                 # Add to history
                 context.add_to_history(self._processors[i].name)
-                
-                # Handle errors if they exist
-                if (isinstance(result, ProcessingResult) and 
-                    result.status == ProcessingStatus.FAILED and
-                    self._processors[i].name in self._error_handlers):
-                    self._error_handlers[self._processors[i].name](result.error, context)
             
             return processed_results
             

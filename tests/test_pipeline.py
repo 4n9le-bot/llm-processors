@@ -4,6 +4,8 @@ Tests for pipeline implementations.
 
 import pytest
 from unittest.mock import AsyncMock
+from typing import Optional, Sequence, List, Dict
+from uuid import uuid4
 
 from core.pipeline import SequentialPipeline, ParallelPipeline, Pipeline
 from core.base import ProcessingStatus, ProcessingResult
@@ -79,17 +81,6 @@ class TestSequentialPipeline:
         # Ensure returned list is a copy
         processors.clear()
         assert len(pipeline._processors) == 1
-    
-    def test_sequential_pipeline_error_handler(self):
-        """Test adding error handlers."""
-        pipeline = SequentialPipeline()
-        
-        def mock_handler(error, context):
-            context.set("handled_error", str(error))
-        
-        result = pipeline.add_error_handler("TestProcessor", mock_handler)
-        assert result is pipeline
-        assert "TestProcessor" in pipeline._error_handlers
     
     def test_sequential_pipeline_timeout_setting(self):
         """Test setting processor timeouts."""
@@ -170,37 +161,6 @@ class TestSequentialPipeline:
         assert len(results) == 2
         assert_result_failed(results[0])  # First processor failed validation
         assert_result_success(results[1])  # Second processor succeeded
-    
-    @pytest.mark.asyncio
-    async def test_sequential_pipeline_execute_with_error_handler(self):
-        """Test pipeline execution with error handler."""
-        pipeline = SequentialPipeline()
-        
-        # Mock error handler
-        def error_handler(error, context):
-            context.set("error_handled", True)
-            context.set("error_message", str(error))
-        
-        # Create a processor that passes validation but fails during processing
-        class ProcessingFailureProcessor(MockProcessor):
-            def validate_input(self, context):
-                return True  # Pass validation
-            
-            async def process(self, context):
-                return ProcessingResult(
-                    status=ProcessingStatus.FAILED,
-                    error=RuntimeError("Processing failed")
-                )
-        
-        processor = ProcessingFailureProcessor("FailingProcessor")
-        pipeline.add_processor(processor)
-        pipeline.add_error_handler(processor.name, error_handler)
-        
-        context = Context()
-        await pipeline.execute(context)
-        
-        assert context.get("error_handled") is True
-        assert "error_message" in context.get_all()
     
     def test_sequential_pipeline_validate_pipeline_empty(self):
         """Test pipeline validation with empty pipeline."""

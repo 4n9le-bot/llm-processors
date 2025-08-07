@@ -102,30 +102,7 @@ class TestPipelineIntegration:
         errors = pipeline.validate_pipeline()
         assert len(errors) > 0
         assert "prompt" in errors[0]
-    
-    def test_pipeline_error_handling(self):
-        """Test pipeline error handling."""
-        prompt_processor = PromptProcessor(prompt="Test")
-        
-        # Create a pipeline with error handler
-        pipeline = Pipeline(processors=[prompt_processor])
-        
-        error_handled = False
-        error_message = None
-        
-        def error_handler(error, context):
-            nonlocal error_handled, error_message
-            error_handled = True
-            error_message = str(error)
-            context.set("error_recovery", "handled")
-        
-        pipeline.add_error_handler("PromptProcessor", error_handler)
-        
-        # This should succeed, so error handler shouldn't be called
-        final_context = pipeline.run()
-        assert not error_handled
-        assert "error_recovery" not in final_context
-    
+
     @pytest.mark.asyncio
     async def test_async_pipeline_execution(self):
         """Test async pipeline execution."""
