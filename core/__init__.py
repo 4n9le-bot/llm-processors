@@ -8,8 +8,6 @@ modular, composable AI processing pipelines.
 from .base import (
     # Core abstractions
     Processor,
-    Pipeline, 
-    
     # Data structures
     ProcessingResult,
     ProcessingStatus,
@@ -19,9 +17,8 @@ from .context import Context
 
 from .pipeline import (
     # Pipeline implementations
-    SequentialPipeline,
+    SequentialPipeline as Pipeline,
     ParallelPipeline,
-    Pipeline,  # Alias for SequentialPipeline
 )
 
 from .processors import (
@@ -29,24 +26,19 @@ from .processors import (
     PromptProcessor,
     LLMProcessor,
     NoOpProcessor,
-    DataTransformProcessor,
 )
 
 __all__ = [
     # Core abstractions
     "Processor",
-    "Pipeline",
     "Context",
-    "ProcessingResult", 
+    "ProcessingResult",
     "ProcessingStatus",
-    
     # Pipeline implementations
-    "SequentialPipeline",
+    "Pipeline",
     "ParallelPipeline",
-    
     # Specialized processors
     "PromptProcessor",
-    "LLMProcessor", 
+    "LLMProcessor",
     "NoOpProcessor",
-    "DataTransformProcessor",
 ]

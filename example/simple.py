@@ -29,8 +29,8 @@ def main():
     )
 
     # 3. 运行流水线
-    # run() 方法会返回最终的 Context 对象
-    final_context = pipeline.run()
+    # process() 方法会返回最终的 Context 对象
+    final_context = pipeline.process()
 
     # 4. 从 Context 中获取并打印结果
     # LLMProcessor 默认会将结果写入 'llm_response' 这个 key

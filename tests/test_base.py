@@ -43,11 +43,8 @@ class TestProcessingStatus:
     
     def test_processing_status_values(self):
         """Test all ProcessingStatus enum values."""
-        assert ProcessingStatus.PENDING.value == "pending"
-        assert ProcessingStatus.RUNNING.value == "running"
         assert ProcessingStatus.COMPLETED.value == "completed"
         assert ProcessingStatus.FAILED.value == "failed"
-        assert ProcessingStatus.SKIPPED.value == "skipped"
 
 
 class TestProcessor:
@@ -79,16 +76,7 @@ class TestProcessor:
         result = await processor.process(empty_context)
         
         assert_result_failed(result, RuntimeError)
-        assert processor.process_called
-    
-    def test_processor_validate_input(self, empty_context):
-        """Test input validation."""
-        processor = MockProcessor()
-        assert processor.validate_input(empty_context) is True
-        assert processor.validate_called
-        
-        processor_fail = MockProcessor(should_fail=True)
-        assert processor_fail.validate_input(empty_context) is False
+        assert processor.process_called    
     
     def test_processor_string_representation(self):
         """Test processor string representation."""
