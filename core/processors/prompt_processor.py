@@ -1,7 +1,5 @@
-from typing import Optional, Dict, Any
-
+from typing import Optional
 from jinja2 import Template, TemplateSyntaxError
-
 from ..base import Processor, ProcessingResult, ProcessingStatus
 from ..context import Context
 
@@ -17,9 +15,9 @@ class PromptProcessor(Processor):
     def __init__(
         self,
         prompt: str,
-        output_key: str = "prompt",
+        output_key: Optional[str] = None,
         input_key: Optional[str] = None,
-        name: str = "PromptProcessor",
+        name: str = "prompt",
     ):
         """
         Initialize prompt processor.
@@ -55,6 +53,7 @@ class PromptProcessor(Processor):
             metadata = {
                 "processor_type": "prompt",
                 "prompt_length": len(rendered_prompt),
+                "input_key": self.input_key,
                 "output_key": self.output_key,
             }
 

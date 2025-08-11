@@ -3,11 +3,11 @@ Package for specialized processor implementations.
 """
 
 from .prompt_processor import PromptProcessor
-from .llm_processor import LLMProcessor
+from .chat_processor import ChatProcessor
 from .noop_processor import NoOpProcessor
 
 __all__ = [
     "PromptProcessor",
-    "LLMProcessor",
+    "ChatProcessor",
     "NoOpProcessor",
 ]

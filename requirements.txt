@@ -1,4 +1,5 @@
 httpx
 Jinja2
+openai
 pytest
 pytest-asyncio
