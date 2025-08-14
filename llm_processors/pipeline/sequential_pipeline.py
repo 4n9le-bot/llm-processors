@@ -41,10 +41,6 @@ class SequentialPipeline(Pipeline):
         results: List[ProcessingResult] = []
 
         for processor in self._processors:
-
-            # Add processor to execution history
-            context.add_to_history(processor.name)
-
             try:
                 # Execute processor with timeout
                 result = await processor.process(context)

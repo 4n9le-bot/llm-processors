@@ -50,10 +50,6 @@ class ParallelPipeline(Pipeline):
                 )
             else:
                 processed_results.append(result)
-
-            # Add to history
-            context.add_to_history(self._processors[i].name)
-
         return processed_results
 
     def __repr__(self) -> str:

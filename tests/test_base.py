@@ -4,7 +4,7 @@ Tests for the base module components (excluding Context).
 
 import pytest
 
-from core.base import ProcessingStatus, ProcessingResult
+from llm_processors.base import ProcessingStatus, ProcessingResult
 from tests.conftest import assert_result_success, assert_result_failed, MockProcessor
 
 

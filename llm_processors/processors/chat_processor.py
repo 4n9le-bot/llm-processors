@@ -1,3 +1,4 @@
+import json
 from typing import Optional, List, Dict, Any
 import openai
 from openai import OpenAI
@@ -15,13 +16,11 @@ class ChatProcessor(Processor):
         self,
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
-        model: str = "gpt-3.5-turbo",
+        model: str = "gpt-4o-mini",
         input_key: str = "prompt_output",
         output_key: str = "llm_output",
         name: str = "llm",
-        temperature: float = 0.6,
-        max_tokens: Optional[int] = None,
-        system_message: Optional[str] = None,
+        **kwargs,
     ):
         """
         Initialize LLM processor.
@@ -33,55 +32,48 @@ class ChatProcessor(Processor):
             input_key: The key to read the prompt from context
             output_key: The key to store the LLM response in context
             name: Optional name for the processor
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens in response
-            system_message: System message to prepend to conversations
+            **kwargs: Additional configuration options:
+                temperature (float): Sampling temperature (default: 0.6)
+                max_tokens (int): Maximum tokens in response (default: None)
+                response_format (str): Response format, 'text' or 'json' (default: 'text')
         """
         super().__init__(name, input_key, output_key)
-        
+
         self.model = model
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.system_message = system_message
-        
+        self.temperature = kwargs.get("temperature", 0.6)
+        self.max_tokens = kwargs.get("max_tokens", None)
+        self.response_format = kwargs.get("response_format", "text")
+
         # Initialize OpenAI client
         client_kwargs = {}
         if api_key:
             client_kwargs["api_key"] = api_key
         if base_url:
             client_kwargs["base_url"] = base_url
-            
+
         self.client = OpenAI(**client_kwargs)
 
     def _prepare_messages(self, prompt: str) -> List[Dict[str, str]]:
         """
         Prepare messages for the chat completion API.
-        
+
         Args:
             prompt: User prompt
-            
+
         Returns:
             List of message dictionaries
         """
         messages = []
-        
-        # Add system message if provided
-        if self.system_message:
-            messages.append({"role": "system", "content": self.system_message})
-        
+
         # Handle different input types
         if isinstance(prompt, str):
             messages.append({"role": "user", "content": prompt})
         elif isinstance(prompt, list):
-            # Assume it's already a list of messages
             messages.extend(prompt)
-        elif isinstance(prompt, dict) and "messages" in prompt:
-            # Extract messages from dict
-            messages.extend(prompt["messages"])
         else:
             # Convert to string
             messages.append({"role": "user", "content": str(prompt)})
-            
+
         return messages
 
     async def process(self, context: Context) -> ProcessingResult:
@@ -105,41 +97,46 @@ class ChatProcessor(Processor):
 
             prompt = context.get(self.input_key)
             messages = self._prepare_messages(prompt)
-            
+
             # Prepare API call parameters
             api_params = {
                 "model": self.model,
                 "messages": messages,
                 "temperature": self.temperature,
+                "response_format": {"type": self.response_format},
             }
-            
+
             if self.max_tokens:
                 api_params["max_tokens"] = self.max_tokens
 
             # Make the API call
             response = self.client.chat.completions.create(**api_params)
-            
-            # Extract the response content
-            llm_response = response.choices[0].message.content
-            
+
+            llm_response = None
+            if response.choices:
+                llm_response = response.choices[0].message.content
+                if self.response_format == "json":
+                    llm_response = json.loads(llm_response)
+
             # Prepare metadata
             metadata = {
-                "processor_type": "llm",
                 "model": self.model,
                 "input_key": self.input_key,
                 "output_key": self.output_key,
                 "response_length": len(llm_response) if llm_response else 0,
-                "usage": {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens,
-                } if response.usage else None,
+                "usage": (
+                    {
+                        "prompt_tokens": response.usage.prompt_tokens,
+                        "completion_tokens": response.usage.completion_tokens,
+                        "total_tokens": response.usage.total_tokens,
+                    }
+                    if response.usage
+                    else None
+                ),
                 "finish_reason": response.choices[0].finish_reason,
                 "temperature": self.temperature,
+                "max_tokens": self.max_tokens if self.max_tokens else None,
             }
-            
-            if self.max_tokens:
-                metadata["max_tokens"] = self.max_tokens
 
             # Add the response to context using the specified output key
             context.set(self.output_key, llm_response)
@@ -149,7 +146,7 @@ class ChatProcessor(Processor):
                 data=llm_response,
                 metadata=metadata,
             )
-            
+
         except openai.AuthenticationError as e:
             return ProcessingResult(
                 status=ProcessingStatus.FAILED,

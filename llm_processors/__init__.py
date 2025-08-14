@@ -24,7 +24,7 @@ from .pipeline import (
 from .processors import (
     # Specialized processors
     PromptProcessor,
-    LLMProcessor,
+    ChatProcessor,
     NoOpProcessor,
 )
 
@@ -39,6 +39,6 @@ __all__ = [
     "ParallelPipeline",
     # Specialized processors
     "PromptProcessor",
-    "LLMProcessor",
+    "ChatProcessor",
     "NoOpProcessor",
 ]

@@ -4,7 +4,7 @@ Tests for the Context class.
 
 import pytest
 
-from core.context import Context
+from llm_processors.context import Context
 
 
 class TestContext:
@@ -14,7 +14,6 @@ class TestContext:
         """Test creating an empty context."""
         context = Context()
         assert context.get_all() == {}
-        assert context.get_history() == []
     
     def test_context_initialization_with_data(self):
         """Test creating a context with initial data."""
@@ -79,40 +78,6 @@ class TestContext:
         context.clear()
         assert context.get_all() == {}
     
-    def test_context_metadata(self):
-        """Test metadata functionality."""
-        context = Context()
-        
-        context.add_metadata("meta_key", "meta_value")
-        assert context.get_metadata("meta_key") == "meta_value"
-        assert context.get_metadata("nonexistent", "default") == "default"
-    
-    def test_context_history(self):
-        """Test execution history functionality."""
-        context = Context()
-        
-        context.add_to_history("Processor1")
-        context.add_to_history("Processor2")
-        
-        history = context.get_history()
-        assert history == ["Processor1", "Processor2"]
-        
-        # Ensure returned history is a copy
-        history.append("Modified")
-        assert context.get_history() == ["Processor1", "Processor2"]
-    
-    def test_context_string_representation(self):
-        """Test string representation of context."""
-        context = Context({"key": "value"})
-        context.add_metadata("meta", "data")
-        context.add_to_history("TestProcessor")
-        
-        str_repr = str(context)
-        assert "Context" in str_repr
-        assert "key" in str_repr
-        assert "meta" in str_repr
-        assert "TestProcessor" in str_repr
-    
     def test_context_repr(self):
         """Test repr representation of context."""
         context = Context({"key": "value"})
@@ -129,17 +94,6 @@ class TestContext:
         # Original context should not be modified
         assert "new_key" not in context
         assert context.get_all() == {"key": "value"}
-    
-    def test_context_immutable_history(self):
-        """Test that history is properly encapsulated."""
-        context = Context()
-        context.add_to_history("Processor1")
-        
-        history = context.get_history()
-        history.clear()
-        
-        # Original history should not be affected
-        assert context.get_history() == ["Processor1"]
     
     def test_context_keyerror_on_missing_key(self):
         """Test that KeyError is raised for missing keys with bracket notation."""
@@ -164,15 +118,3 @@ class TestContext:
         assert context.get("tuple") == (1, 2, 3)
         assert context.get("set") == {1, 2, 3}
     
-    def test_context_metadata_isolation(self):
-        """Test that metadata is isolated from main data."""
-        context = Context({"data_key": "data_value"})
-        context.add_metadata("meta_key", "meta_value")
-        
-        # Metadata should not appear in main data
-        assert "meta_key" not in context
-        assert context.get("meta_key") is None
-        assert context.get_metadata("meta_key") == "meta_value"
-        
-        # Main data should not appear in metadata
-        assert context.get_metadata("data_key") is None

@@ -46,7 +46,6 @@ class NoOpProcessor(Processor):
             return ProcessingResult(
                 status=ProcessingStatus.COMPLETED,
                 metadata={
-                    "processor_type": "noop",
                     "context_keys": list(context.get_all().keys()),
                     "input_key": self.input_key,
                     "output_key": self.output_key,

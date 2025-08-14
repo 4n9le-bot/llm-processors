@@ -51,10 +51,10 @@ class PromptProcessor(Processor):
             context.set(self.output_key, rendered_prompt)
 
             metadata = {
-                "processor_type": "prompt",
                 "prompt_length": len(rendered_prompt),
                 "input_key": self.input_key,
                 "output_key": self.output_key,
+                "template_vars": template_vars,
             }
 
             return ProcessingResult(
