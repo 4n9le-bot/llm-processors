@@ -21,6 +21,8 @@ from .pipeline import (
     ParallelPipeline,
 )
 
+from .pipeline.loader import load_pipeline_from_yaml
+
 from .processors import (
     # Specialized processors
     PromptProcessor,
@@ -37,6 +39,7 @@ __all__ = [
     # Pipeline implementations
     "Pipeline",
     "ParallelPipeline",
+    "load_pipeline_from_yaml",
     # Specialized processors
     "PromptProcessor",
     "ChatProcessor",

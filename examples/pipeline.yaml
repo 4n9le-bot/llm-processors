@@ -1,0 +1,14 @@
+pipeline:
+  type: sequential
+  processors:
+    - id: MyPrompt
+      type: prompt
+      config:
+        prompt: "请用简单的语言解释一下，编程中的 'API' 是什么？"
+        output_key: prompt_output
+    - id: MyLLM
+      type: llm
+      config:
+        model: deepseek-chat
+        input_key: prompt_output
+        output_key: llm_output

@@ -93,3 +93,21 @@ class Pipeline(ABC):
             List[ProcessingResult]: Results from each processor
         """
         pass
+
+
+    @classmethod
+    async def build_from_yml(cls, path: str) -> "Pipeline":
+        """
+        Build a pipeline from a YAML configuration file.
+
+        Args:
+            path: The path to the YAML file
+
+        Returns:
+            Pipeline: The constructed pipeline
+        """
+    # Local import to avoid circular dependency at module import time
+    from .pipeline.loader import load_pipeline_from_yaml
+
+    pipeline = load_pipeline_from_yaml(path)
+    return pipeline
