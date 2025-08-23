@@ -53,28 +53,6 @@ class ChatProcessor(Processor):
 
         self.client = OpenAI(**client_kwargs)
 
-    def _prepare_messages(self, prompt: str) -> List[Dict[str, str]]:
-        """
-        Prepare messages for the chat completion API.
-
-        Args:
-            prompt: User prompt
-
-        Returns:
-            List of message dictionaries
-        """
-        messages = []
-
-        # Handle different input types
-        if isinstance(prompt, str):
-            messages.append({"role": "user", "content": prompt})
-        elif isinstance(prompt, list):
-            messages.extend(prompt)
-        else:
-            # Convert to string
-            messages.append({"role": "user", "content": str(prompt)})
-
-        return messages
 
     async def process(self, context: Context) -> ProcessingResult:
         """
@@ -96,7 +74,7 @@ class ChatProcessor(Processor):
                 )
 
             prompt = context.get(self.input_key)
-            messages = self._prepare_messages(prompt)
+            messages = [{"role": "user", "content": prompt}]
 
             # Prepare API call parameters
             api_params = {
