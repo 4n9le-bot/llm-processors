@@ -5,20 +5,33 @@ A Processor transforms async streams of Packets. Processors can be composed
 using + (sequential) and // (parallel) operators.
 """
 
-from typing import Protocol, AsyncIterable, AsyncIterator, runtime_checkable
+from abc import ABC, abstractmethod
+from typing import AsyncIterable, AsyncIterator
 
-from llm_processors.core.packet import Packet, PacketTypes
+from llm_processors.core.packet import Packet
 
 
-@runtime_checkable
-class Processor(Protocol):
+class BaseProcessor(ABC):
     """
-    Protocol for processors that transform async streams of Packets.
+    Abstract base class for processors that transform async streams of Packets.
 
     A Processor takes an AsyncIterable of Packets and yields transformed
     Packets. Processors can be composed using + (sequential) and // (parallel).
 
+    The base class provides:
+    - Optional automatic error handling (errors become error packets)
+    - Operator overloading for composition (+ and //)
+    - Abstract _process_stream method for subclasses to implement
+
     Examples:
+        >>> class UppercaseProcessor(BaseProcessor):
+        ...     async def _process_stream(self, stream: AsyncIterable[Packet]) -> AsyncIterator[Packet]:
+        ...         async for packet in stream:
+        ...             if packet.is_text():
+        ...                 yield Packet.from_text(packet.content.upper())
+        ...             else:
+        ...                 yield packet
+
         >>> # Sequential composition
         >>> pipeline = processor1 + processor2 + processor3
 
@@ -29,81 +42,94 @@ class Processor(Protocol):
         >>> complex_pipeline = (proc1 + proc2) // (proc3 + proc4)
     """
 
-    async def __call__(
-        self,
-        stream: AsyncIterable[Packet]
-    ) -> AsyncIterator[PacketTypes]:
+    def __init__(self, handle_errors: bool = True):
         """
-        Process an async stream of Packets.
+        Initialize processor.
 
         Args:
-            stream: Input async iterable of Packets
-
-        Yields:
-            Transformed Packets or raw content (str/bytes/Image)
+            handle_errors: If True, exceptions are caught and converted to
+                error packets. If False, exceptions propagate normally.
         """
-        ...
-
-    def __add__(self, other: 'Processor') -> 'Processor':
-        """Chain this processor with another (sequential composition)."""
-        ...
-
-    def __floordiv__(self, other: 'Processor') -> 'Processor':
-        """Run this processor in parallel with another."""
-        ...
-
-
-class BaseProcessor:
-    """
-    Base class for processors providing operator overloading.
-
-    Subclasses should implement the process() method to define
-    their transformation logic.
-
-    Examples:
-        >>> class UppercaseProcessor(BaseProcessor):
-        ...     async def process(self, packet: Packet) -> AsyncIterator[Packet]:
-        ...         if packet.is_text():
-        ...             yield Packet.from_text(packet.content.upper())
-        ...         else:
-        ...             yield packet
-    """
+        self.handle_errors = handle_errors
 
     async def __call__(
         self,
         stream: AsyncIterable[Packet]
     ) -> AsyncIterator[Packet]:
         """
-        Main entry point - delegates to process() for each packet.
+        Process an async stream of Packets.
+
+        This method handles error wrapping if enabled, then delegates
+        to _process_stream for the actual processing logic.
 
         Args:
             stream: Input async iterable of Packets
 
         Yields:
-            Transformed Packets from process() method
-        """
-        async for packet in stream:
-            async for result in self.process(packet):
-                yield result
+            Transformed Packets (or error packets if exceptions occur)
 
-    async def process(self, packet: Packet) -> AsyncIterator[Packet]:
+        Examples:
+            >>> processor = MyProcessor()
+            >>> results = processor(input_stream)
+            >>> async for packet in results:
+            ...     print(packet.content)
         """
-        Process a single packet. Override in subclasses.
+        if not self.handle_errors:
+            # Direct pass-through without error handling
+            async for packet in self._process_stream(stream):
+                yield packet
+        else:
+            # Process with error handling - wrap each packet
+            async for packet in stream:
+                try:
+                    # Create single-item stream for this packet
+                    async def single_packet_stream():
+                        yield packet
+
+                    # Process and yield results
+                    async for result in self._process_stream(single_packet_stream()):
+                        yield result
+                except Exception as e:
+                    # Convert exception to error packet
+                    error_metadata = {
+                        'substream_name': 'error',
+                        'error_type': type(e).__name__,
+                    }
+
+                    # Preserve original packet metadata
+                    if packet.metadata:
+                        error_metadata['source_metadata'] = packet.metadata
+
+                    yield Packet.from_text(str(e), **error_metadata)
+
+    @abstractmethod
+    async def _process_stream(
+        self,
+        stream: AsyncIterable[Packet]
+    ) -> AsyncIterator[Packet]:
+        """
+        Process a stream of packets. Subclasses must implement this method.
 
         Args:
-            packet: Input packet
+            stream: Input async iterable of Packets
 
         Yields:
-            Transformed packets (can yield 0, 1, or many)
+            Transformed Packets
 
         Note:
             - Yield 0 packets to filter out
             - Yield 1 packet to transform
             - Yield many packets to expand/fan-out
-        """
-        yield packet
 
-    def __add__(self, other: Processor) -> 'Processor':
+        Examples:
+            >>> async def _process_stream(self, stream):
+            ...     async for packet in stream:
+            ...         if packet.is_text():
+            ...             yield Packet.from_text(packet.content.upper())
+        """
+        ...
+
+    def __add__(self, other: 'BaseProcessor') -> 'BaseProcessor':
         """
         Chain with another processor (sequential composition).
 
@@ -120,7 +146,7 @@ class BaseProcessor:
         from llm_processors.core.operators import SequentialProcessor
         return SequentialProcessor(self, other)
 
-    def __floordiv__(self, other: Processor) -> 'Processor':
+    def __floordiv__(self, other: 'BaseProcessor') -> 'BaseProcessor':
         """
         Run in parallel with another processor.
 

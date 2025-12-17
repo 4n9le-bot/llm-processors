@@ -6,7 +6,7 @@ and yields responses as packets.
 """
 
 import os
-from typing import Optional, AsyncIterator, Any
+from typing import Optional, AsyncIterator, AsyncIterable, Any
 
 from openai import AsyncOpenAI
 
@@ -18,7 +18,7 @@ class ChatProcessor(BaseProcessor):
     Processes text packets through OpenAI Chat API.
 
     Converts text packets to chat messages and returns LLM responses.
-    Only processes text packets; other packet types are skipped.
+    Only processes text packets; other packet types are passed through unchanged.
 
     Examples:
         >>> chat = ChatProcessor(model="gpt-4o-mini")
@@ -64,65 +64,70 @@ class ChatProcessor(BaseProcessor):
             base_url=base_url or os.getenv('OPENAI_BASE_URL')
         )
 
-    async def process(self, packet: Packet) -> AsyncIterator[Packet]:
+    async def _process_stream(
+        self,
+        stream: AsyncIterable[Packet]
+    ) -> AsyncIterator[Packet]:
         """
-        Process text packet through OpenAI API.
+        Process text packets through OpenAI API.
 
         Args:
-            packet: Input packet with text content
+            stream: Input packet stream
 
         Yields:
-            Packet with LLM response and metadata (usage, model, etc.)
+            Packets with LLM responses and metadata (usage, model, etc.)
 
         Note:
-            Non-text packets are skipped (no output)
+            Non-text packets are passed through unchanged
         """
-        if not packet.is_text():
-            # Skip non-text packets
-            return
+        async for packet in stream:
+            if not packet.is_text():
+                # Pass through non-text packets
+                yield packet
+                continue
 
-        # Build messages
-        messages = [
-            {"role": "user", "content": packet.content}
-        ]
+            # Build messages
+            messages = [
+                {"role": "user", "content": packet.content}
+            ]
 
-        # Prepare API parameters
-        api_params: dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": self.temperature,
-            **self.extra_params
-        }
-
-        if self.max_tokens:
-            api_params["max_tokens"] = self.max_tokens
-
-        # Call API
-        response = await self.client.chat.completions.create(**api_params)
-
-        # Extract response
-        if response.choices:
-            content = response.choices[0].message.content
-
-            # Build metadata
-            metadata: dict[str, Any] = {
-                'model': self.model,
-                'finish_reason': response.choices[0].finish_reason
+            # Prepare API parameters
+            api_params: dict[str, Any] = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": self.temperature,
+                **self.extra_params
             }
 
-            # Add usage stats if available
-            if response.usage:
-                metadata['usage'] = {
-                    'prompt_tokens': response.usage.prompt_tokens,
-                    'completion_tokens': response.usage.completion_tokens,
-                    'total_tokens': response.usage.total_tokens
+            if self.max_tokens:
+                api_params["max_tokens"] = self.max_tokens
+
+            # Call API
+            response = await self.client.chat.completions.create(**api_params)
+
+            # Extract response
+            if response.choices:
+                content = response.choices[0].message.content
+
+                # Build metadata
+                metadata: dict[str, Any] = {
+                    'model': self.model,
+                    'finish_reason': response.choices[0].finish_reason
                 }
 
-            # Preserve original packet metadata
-            if packet.metadata:
-                metadata['source_metadata'] = packet.metadata
+                # Add usage stats if available
+                if response.usage:
+                    metadata['usage'] = {
+                        'prompt_tokens': response.usage.prompt_tokens,
+                        'completion_tokens': response.usage.completion_tokens,
+                        'total_tokens': response.usage.total_tokens
+                    }
 
-            yield Packet.from_text(content or "", **metadata)
+                # Preserve original packet metadata
+                if packet.metadata:
+                    metadata['source_metadata'] = packet.metadata
+
+                yield Packet.from_text(content or "", **metadata)
 
     def __repr__(self) -> str:
         """String representation."""

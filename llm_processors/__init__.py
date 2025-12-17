@@ -10,32 +10,35 @@ __version__ = "2.0.0"
 # Core exports
 from llm_processors.core import (
     Packet,
-    PacketTypes,
-    Processor,
     BaseProcessor,
-    processor,
 )
 
 # Processor exports
 from llm_processors.processors import (
-    FromIterableProcessor,
     collect,
     collect_text,
     PromptProcessor,
     ChatProcessor,
+    FilterProcessor,
+)
+
+# Utility exports
+from llm_processors.utils import (
+    PacketConverter,
+    StreamAdapter,
 )
 
 __all__ = [
     # Core
     'Packet',
-    'PacketTypes',
-    'Processor',
     'BaseProcessor',
-    'processor',
     # Processors
-    'FromIterableProcessor',
     'collect',
     'collect_text',
     'PromptProcessor',
     'ChatProcessor',
+    'FilterProcessor',
+    # Utils
+    'PacketConverter',
+    'StreamAdapter',
 ]

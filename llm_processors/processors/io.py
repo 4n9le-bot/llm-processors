@@ -1,68 +1,16 @@
 """
-I/O Processors: Entry and exit points for pipelines.
+I/O Utilities: Collection functions for pipeline outputs.
 
-This module provides utilities for creating packet streams from iterables
-and collecting results from streams.
+This module provides utilities for collecting results from async streams.
+For creating input streams, use StreamAdapter.from_items() from the utils module.
 """
 
-from typing import List, AsyncIterator, Iterable, Union, Optional
+from typing import AsyncIterator
 
-from llm_processors.core import Packet, PacketTypes, BaseProcessor
-
-
-class FromIterableProcessor(BaseProcessor):
-    """
-    Create packet stream from Python iterable.
-
-    This is the standard entry point for pipelines, converting
-    a regular Python iterable into an async stream of Packets.
-
-    Examples:
-        >>> source = FromIterableProcessor(["Hello", "World"])
-        >>> pipeline = source + processor1 + processor2
-        >>> results = await collect(pipeline())
-    """
-
-    def __init__(self, items: Iterable[Union[str, Packet]]):
-        """
-        Initialize from iterable processor.
-
-        Args:
-            items: Iterable of strings or Packets
-        """
-        super().__init__()
-        self.items = items
-
-    async def __call__(
-        self,
-        stream: Optional[AsyncIterator[Packet]] = None
-    ) -> AsyncIterator[Packet]:
-        """
-        Ignores input stream, yields from items.
-
-        This allows FromIterableProcessor to be used as the start
-        of a pipeline without requiring an input stream.
-
-        Args:
-            stream: Ignored (can be None)
-
-        Yields:
-            Packets from the items iterable
-        """
-        for item in self.items:
-            if isinstance(item, Packet):
-                yield item
-            elif isinstance(item, str):
-                yield Packet.from_text(item)
-            else:
-                raise ValueError(f"Unsupported item type: {type(item)}. Must be str or Packet.")
-
-    def __repr__(self) -> str:
-        """String representation."""
-        return f"FromIterableProcessor({len(list(self.items))} items)"
+from llm_processors.core import Packet
 
 
-async def collect(stream: AsyncIterator[PacketTypes]) -> List[PacketTypes]:
+async def collect(stream: AsyncIterator[Packet]) -> list[Packet]:
     """
     Collect async stream into list.
 
@@ -70,51 +18,50 @@ async def collect(stream: AsyncIterator[PacketTypes]) -> List[PacketTypes]:
     the entire async stream into a Python list.
 
     Args:
-        stream: Async iterator of PacketTypes
+        stream: Async iterator of Packets
 
     Returns:
-        List of all items from the stream
+        List of all Packets from the stream
 
     Examples:
-        >>> pipeline = source + processor1 + processor2
-        >>> results = await collect(pipeline())
-        >>> for result in results:
-        ...     print(result.content)
+        >>> from llm_processors.utils import StreamAdapter
+        >>> pipeline = processor1 + processor2
+        >>> input_stream = StreamAdapter.from_items(["Hello", "World"])
+        >>> results = await collect(pipeline(input_stream))
+        >>> for packet in results:
+        ...     print(packet.content)
     """
     results = []
-    async for item in stream:
-        results.append(item)
+    async for packet in stream:
+        results.append(packet)
     return results
 
 
-async def collect_text(stream: AsyncIterator[PacketTypes]) -> List[str]:
+async def collect_text(stream: AsyncIterator[Packet]) -> list[str]:
     """
     Collect async stream and extract text content.
 
-    Convenience function that collects the stream and extracts
-    text content from Packets, converting non-text packets to strings.
+    Convenience function that collects the stream and extracts text
+    content from Packets. Non-text packets are converted to strings.
 
     Args:
-        stream: Async iterator of PacketTypes
+        stream: Async iterator of Packets
 
     Returns:
-        List of text strings
+        List of text strings extracted from Packets
 
     Examples:
+        >>> from llm_processors.utils import StreamAdapter
         >>> pipeline = source + chat_processor
-        >>> texts = await collect_text(pipeline())
+        >>> input_stream = StreamAdapter.from_items(["Hello"])
+        >>> texts = await collect_text(pipeline(input_stream))
         >>> for text in texts:
         ...     print(text)
     """
     results = []
-    async for item in stream:
-        if isinstance(item, Packet):
-            if item.is_text():
-                results.append(item.content)  # type: ignore
-            else:
-                results.append(str(item.content))
-        elif isinstance(item, str):
-            results.append(item)
+    async for packet in stream:
+        if packet.is_text():
+            results.append(packet.content)  # type: ignore
         else:
-            results.append(str(item))
+            results.append(str(packet.content))
     return results

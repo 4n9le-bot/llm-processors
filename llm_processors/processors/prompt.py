@@ -5,7 +5,7 @@ This processor renders prompts using Python's string.Template for
 simple ${variable} substitution.
 """
 
-from typing import Optional, Dict, Any, AsyncIterator
+from typing import Optional, Dict, Any, AsyncIterator, AsyncIterable
 from string import Template
 
 from llm_processors.core import Packet, BaseProcessor
@@ -45,33 +45,37 @@ class PromptProcessor(BaseProcessor):
         self.template = Template(template)
         self.context = context or {}
 
-    async def process(self, packet: Packet) -> AsyncIterator[Packet]:
+    async def _process_stream(
+        self,
+        stream: AsyncIterable[Packet]
+    ) -> AsyncIterator[Packet]:
         """
         Render template with packet content as 'input' variable.
 
         Args:
-            packet: Input packet (content available as ${input})
+            stream: Input packet stream
 
         Yields:
-            Packet with rendered prompt as text
+            Packets with rendered prompts as text
         """
-        # Build context with packet content
-        render_context = {
-            'input': packet.content,
-            **self.context
-        }
+        async for packet in stream:
+            # Build context with packet content
+            render_context = {
+                'input': packet.content,
+                **self.context
+            }
 
-        # Render template
-        rendered = self.template.safe_substitute(render_context)
+            # Render template
+            rendered = self.template.safe_substitute(render_context)
 
-        # Preserve some original metadata
-        metadata = {
-            'source_mimetype': packet.mimetype,
-            'template': self.template.template,
-        }
+            # Preserve some original metadata
+            metadata = {
+                'source_mimetype': packet.mimetype,
+                'template': self.template.template,
+            }
 
-        # Yield text packet
-        yield Packet.from_text(rendered, **metadata)
+            # Yield text packet
+            yield Packet.from_text(rendered, **metadata)
 
     def __repr__(self) -> str:
         """String representation."""

@@ -14,10 +14,6 @@ except ImportError:
     Image = None  # type: ignore
 
 
-# Type aliases
-PacketTypes = Union[str, bytes, 'Image.Image', 'Packet']
-
-
 @dataclass(frozen=True)
 class Packet:
     """

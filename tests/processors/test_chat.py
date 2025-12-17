@@ -6,7 +6,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from llm_processors import Packet
-from llm_processors.processors import ChatProcessor, FromIterableProcessor, collect
+from llm_processors.processors import ChatProcessor, collect
+from llm_processors.utils import StreamAdapter
 
 
 @pytest.mark.asyncio
@@ -36,10 +37,8 @@ async def test_chat_processor_mock():
     processor.client = mock_client
 
     # Test
-    source = FromIterableProcessor(["test input"])
-    pipeline = source + processor
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["test input"])
+    results = await collect(processor(input_stream))
 
     # Verify results
     assert len(results) == 1
@@ -56,8 +55,8 @@ async def test_chat_processor_mock():
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_chat_processor_skips_non_text():
-    """Test that ChatProcessor skips non-text packets."""
+async def test_chat_processor_passes_through_non_text():
+    """Test that ChatProcessor passes through non-text packets unchanged."""
     # Create mock (shouldn't be called)
     mock_client = AsyncMock()
 
@@ -65,13 +64,13 @@ async def test_chat_processor_skips_non_text():
     processor.client = mock_client
 
     # Send bytes packet
-    source = FromIterableProcessor([Packet.from_bytes(b"binary")])
-    pipeline = source + processor
+    input_stream = StreamAdapter.from_items([Packet.from_bytes(b"binary")])
+    results = await collect(processor(input_stream))
 
-    results = await collect(pipeline())
-
-    # Should have no results (skipped)
-    assert len(results) == 0
+    # Should have 1 result (passed through)
+    assert len(results) == 1
+    assert results[0].is_bytes()
+    assert results[0].content == b"binary"
 
     # API should not have been called
     mock_client.chat.completions.create.assert_not_called()
@@ -97,10 +96,8 @@ async def test_chat_processor_multiple_inputs():
     processor.client = mock_client
 
     # Multiple inputs
-    source = FromIterableProcessor(["input1", "input2", "input3"])
-    pipeline = source + processor
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["input1", "input2", "input3"])
+    results = await collect(processor(input_stream))
 
     # Should have 3 results
     assert len(results) == 3
@@ -131,10 +128,8 @@ async def test_chat_processor_with_parameters():
     )
     processor.client = mock_client
 
-    source = FromIterableProcessor(["test"])
-    pipeline = source + processor
-
-    await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["test"])
+    await collect(processor(input_stream))
 
     # Check parameters were passed
     call_args = mock_client.chat.completions.create.call_args

@@ -4,7 +4,8 @@ Tests for PromptProcessor.
 
 import pytest
 from llm_processors import Packet
-from llm_processors.processors import PromptProcessor, FromIterableProcessor, collect
+from llm_processors.processors import PromptProcessor, collect
+from llm_processors.utils import StreamAdapter
 
 
 @pytest.mark.asyncio
@@ -13,10 +14,8 @@ async def test_prompt_basic_substitution():
     """Test basic template substitution."""
     prompt = PromptProcessor("Hello ${input}!")
 
-    source = FromIterableProcessor(["World"])
-    pipeline = source + prompt
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["World"])
+    results = await collect(prompt(input_stream))
 
     assert len(results) == 1
     assert results[0].content == "Hello World!"
@@ -31,10 +30,8 @@ async def test_prompt_with_context():
         context={"role": "teacher"}
     )
 
-    source = FromIterableProcessor(["Python"])
-    pipeline = source + prompt
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["Python"])
+    results = await collect(prompt(input_stream))
 
     assert len(results) == 1
     assert "As a teacher" in results[0].content
@@ -47,10 +44,8 @@ async def test_prompt_multiple_inputs():
     """Test prompt processor with multiple inputs."""
     prompt = PromptProcessor("Explain ${input} in one sentence.")
 
-    source = FromIterableProcessor(["Python", "Rust", "Go"])
-    pipeline = source + prompt
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["Python", "Rust", "Go"])
+    results = await collect(prompt(input_stream))
 
     assert len(results) == 3
     assert "Python" in results[0].content
@@ -64,10 +59,8 @@ async def test_prompt_preserves_metadata():
     """Test that prompt processor adds metadata."""
     prompt = PromptProcessor("Test: ${input}")
 
-    source = FromIterableProcessor([Packet.from_text("hello", author="Alice")])
-    pipeline = source + prompt
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items([Packet.from_text("hello", author="Alice")])
+    results = await collect(prompt(input_stream))
 
     assert len(results) == 1
     # Check that template metadata is added
@@ -83,10 +76,8 @@ async def test_prompt_safe_substitute():
     # Using ${missing} that doesn't exist
     prompt = PromptProcessor("Hello ${input} and ${missing}!")
 
-    source = FromIterableProcessor(["World"])
-    pipeline = source + prompt
-
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(["World"])
+    results = await collect(prompt(input_stream))
 
     # Should not raise error, ${missing} stays as-is
     assert len(results) == 1

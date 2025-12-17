@@ -10,11 +10,11 @@ This example demonstrates:
 
 import asyncio
 from llm_processors import (
-    FromIterableProcessor,
     PromptProcessor,
     ChatProcessor,
     collect,
 )
+from llm_processors.utils import StreamAdapter
 
 
 async def main():
@@ -28,29 +28,28 @@ async def main():
     topics = ["machine learning"]
 
     # Create processors
-    source = FromIterableProcessor(topics)
     prompt = PromptProcessor("Explain ${input} in simple terms.")
 
     # Two different models for comparison
     model_mini = ChatProcessor(model="gpt-4o-mini", temperature=0.7)
     model_standard = ChatProcessor(model="gpt-4o", temperature=0.7)
 
-    # Compose pipeline: source -> prompt -> (model1 // model2)
-    pipeline = source + prompt + (model_mini // model_standard)
+    # Compose pipeline: prompt -> (model1 // model2)
+    pipeline = prompt + (model_mini // model_standard)
 
     print("Pipeline:")
-    print(f"  {source}")
-    print(f"  + {prompt}")
+    print(f"  {prompt}")
     print(f"  + ({model_mini} // {model_standard})")
     print()
     print("This will send the same prompt to both models in parallel.")
     print()
 
-    # Execute pipeline
+    # Create input stream and execute pipeline
     print("Processing...")
     print()
 
-    results = await collect(pipeline())
+    input_stream = StreamAdapter.from_items(topics)
+    results = await collect(pipeline(input_stream))
 
     # Display results
     print(f"Received {len(results)} results:")
